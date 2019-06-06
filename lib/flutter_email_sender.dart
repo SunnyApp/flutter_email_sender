@@ -14,7 +14,7 @@ class FlutterEmailSender {
 EmailSendResult emailSendResult(String name) =>
     EmailSendResult.values.firstWhere((result) => "$result" == name, orElse: () => EmailSendResult.unknown);
 
-enum EmailSendResult { cancelled, sent, unknown }
+enum EmailSendResult { cancelled, sent, unknown, failed }
 
 class Email {
   final String subject;
