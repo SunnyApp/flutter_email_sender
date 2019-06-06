@@ -7,7 +7,7 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
-import io.flutter.plugin.common.PluginRegistry.Registrar
+import io.flutter.plugin.common.PluginRegistry.*
 import java.io.File
 
 private const val SUBJECT = "subject"
@@ -19,7 +19,7 @@ private const val ATTACHMENT_PATH = "attachment_path"
 private const val REQUEST_CODE_SEND = 607
 
 class FlutterEmailSenderPlugin(private val registrar: Registrar)
-    : MethodCallHandler, PluginRegistry.ActivityResultListener {
+    : MethodCallHandler, ActivityResultListener {
     companion object {
         @JvmStatic
         fun registerWith(registrar: Registrar) {
@@ -30,7 +30,7 @@ class FlutterEmailSenderPlugin(private val registrar: Registrar)
         }
     }
 
-    private var channelResult: Result? = null
+    private lateinit var channelResult: Result
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         this.channelResult = result
@@ -52,50 +52,33 @@ class FlutterEmailSenderPlugin(private val registrar: Registrar)
 
         intent.type = "vnd.android.cursor.dir/email"
 
-
-        if (options.hasArgument(SUBJECT)) {
-            val subject = options.argument<String>(SUBJECT)
+        options.string(SUBJECT) {subject->
             intent.putExtra(Intent.EXTRA_SUBJECT, subject)
         }
 
-        if (options.hasArgument(BODY)) {
-            val body = options.argument<String>(BODY)
-            if (body != null) {
-                intent.putExtra(Intent.EXTRA_TEXT, body)
-            }
+        options.string(BODY) {body->
+            intent.putExtra(Intent.EXTRA_TEXT, body)
         }
 
-        if (options.hasArgument(RECIPIENTS)) {
-            val recipients = options.argument<ArrayList<String>>(RECIPIENTS)
-            if (recipients != null) {
-                intent.putExtra(Intent.EXTRA_EMAIL, listArrayToArray(recipients))
-            }
+        options.strings(RECIPIENTS) {recipients->
+            intent.putExtra(Intent.EXTRA_EMAIL, recipients.toTypedArray())
         }
 
-        if (options.hasArgument(CC)) {
-            val cc = options.argument<ArrayList<String>>(CC)
-            if (cc != null) {
-                intent.putExtra(Intent.EXTRA_CC, listArrayToArray(cc))
-            }
+        options.strings(CC) { cc->
+            intent.putExtra(Intent.EXTRA_CC, cc.toTypedArray())
         }
 
-        if (options.hasArgument(BCC)) {
-            val bcc = options.argument<ArrayList<String>>(BCC)
-            if (bcc != null) {
-                intent.putExtra(Intent.EXTRA_BCC, listArrayToArray(bcc))
-            }
+        options.strings(BCC) { bcc->
+            intent.putExtra(Intent.EXTRA_BCC, bcc.toTypedArray())
         }
 
-        if (options.hasArgument(ATTACHMENT_PATH)) {
-            val attachmentPath = options.argument<String>(ATTACHMENT_PATH)
-            if (attachmentPath != null) {
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        options.string(ATTACHMENT_PATH) { attachmentPath->
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-                val file = File(attachmentPath)
-                val uri = FileProvider.getUriForFile(activity, registrar.context().packageName + ".file_provider", file)
+            val file = File(attachmentPath)
+            val uri = FileProvider.getUriForFile(activity, registrar.context().packageName + ".file_provider", file)
 
-                intent.putExtra(Intent.EXTRA_STREAM, uri)
-            }
+            intent.putExtra(Intent.EXTRA_STREAM, uri)
         }
 
         val packageManager = activity.packageManager
@@ -110,16 +93,24 @@ class FlutterEmailSenderPlugin(private val registrar: Registrar)
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         return when (requestCode) {
             REQUEST_CODE_SEND -> {
-                channelResult?.success(null)
+                when(resultCode) {
+                    -1 -> channelResult.success("sent")
+                    0 -> channelResult.success("cancelled")
+                    else-> channelResult.success("sent")
+                }
                 return true
             }
-            else -> {
-                false
-            }
+            else -> false
         }
     }
-
-    private fun listArrayToArray(r: ArrayList<String>): Array<String> {
-        return r.toArray(arrayOfNulls<String>(r.size))
-    }
 }
+
+/**
+ * Executes code on a String argument if the argument exists and is non-null
+ */
+fun MethodCall.string(key:String, block: (String)->Unit) = this.argument<String>(key)?.let(block)
+
+/**
+ * Executes code on a List<String> argument if the argument exists and is non-null
+ */
+fun MethodCall.strings(key:String, block: (List<String>)->Unit) = this.argument<List<String>>(key)?.let(block)

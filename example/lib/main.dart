@@ -35,11 +35,10 @@ class _MyAppState extends State<MyApp> {
       attachmentPath: attachment,
     );
 
-    String platformResponse;
+    var platformResponse;
 
     try {
-      await FlutterEmailSender.send(email);
-      platformResponse = 'success';
+      platformResponse = await FlutterEmailSender.send(email);
     } catch (error) {
       platformResponse = error.toString();
     }
@@ -47,14 +46,13 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     _scaffoldKey.currentState.showSnackBar(SnackBar(
-      content: Text(platformResponse),
+      content: Text("$platformResponse"),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final Widget imagePath = Text(attachment ?? '');
-
     return MaterialApp(
       theme: ThemeData(primaryColor: Colors.red),
       home: Scaffold(
@@ -102,8 +100,7 @@ class _MyAppState extends State<MyApp> {
                     child: TextField(
                       controller: _bodyController,
                       maxLines: 10,
-                      decoration: InputDecoration(
-                          labelText: 'Body', border: OutlineInputBorder()),
+                      decoration: InputDecoration(labelText: 'Body', border: OutlineInputBorder()),
                     ),
                   ),
                   imagePath,

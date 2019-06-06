@@ -21,6 +21,9 @@ public class SwiftFlutterEmailSenderPlugin: NSObject, FlutterPlugin {
     }
 
     private func sendMail(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        
+
+        
         guard let email = parseArgs(call, result: result) else { return }
 
         guard let viewController = UIApplication.shared.keyWindow?.rootViewController else {
@@ -33,8 +36,9 @@ public class SwiftFlutterEmailSenderPlugin: NSObject, FlutterPlugin {
 
         if MFMailComposeViewController.canSendMail() {
             let mailComposerVC = MFMailComposeViewController()
-            mailComposerVC.mailComposeDelegate = self
-
+            let delegate = SwiftFlutterEmailSenderDelegate(flutterResult: result)
+            mailComposerVC.mailComposeDelegate = delegate
+            
             mailComposerVC.setToRecipients(email.recipients)
             if let subject = email.subject {
                 mailComposerVC.setSubject(subject)
@@ -57,7 +61,7 @@ public class SwiftFlutterEmailSenderPlugin: NSObject, FlutterPlugin {
 
             viewController.present(mailComposerVC,
                                    animated: true,
-                                   completion: { result(nil) }
+                                   completion: { result("cancelled") }
             )
         } else{
             result(FlutterError.init(code: "not_available",
@@ -87,10 +91,19 @@ public class SwiftFlutterEmailSenderPlugin: NSObject, FlutterPlugin {
     }
 }
 
-extension SwiftFlutterEmailSenderPlugin : MFMailComposeViewControllerDelegate {
-    public func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
-        controller.dismiss(animated: true, completion: nil)
+class SwiftFlutterEmailSenderDelegate : NSObject, MFMailComposeViewControllerDelegate {
+    let flutterResult: FlutterResult
+    
+    init(flutterResult: @escaping FlutterResult) {
+        self.flutterResult = flutterResult
     }
+
+    public func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+        controller.dismiss(animated: true, completion: {
+            self.flutterResult("sent")
+        })
+    }
+    
 }
 
 struct Email {

@@ -3,13 +3,18 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 class FlutterEmailSender {
-  static const MethodChannel _channel =
-      const MethodChannel('flutter_email_sender');
+  static const MethodChannel _channel = const MethodChannel('flutter_email_sender');
 
-  static Future<void> send(Email mail) {
-    return _channel.invokeMethod('send', mail.toJson());
+  static Future<EmailSendResult> send(Email mail) async {
+    final String result = await _channel.invokeMethod('send', mail.toJson());
+    return emailSendResult(result);
   }
 }
+
+EmailSendResult emailSendResult(String name) =>
+    EmailSendResult.values.firstWhere((result) => "$result" == name, orElse: () => EmailSendResult.unknown);
+
+enum EmailSendResult { cancelled, sent, unknown }
 
 class Email {
   final String subject;
