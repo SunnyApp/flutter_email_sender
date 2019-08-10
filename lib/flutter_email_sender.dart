@@ -11,8 +11,20 @@ class FlutterEmailSender {
   }
 }
 
-EmailSendResult emailSendResult(String name) =>
-    EmailSendResult.values.firstWhere((result) => "$result" == name, orElse: () => EmailSendResult.unknown);
+EmailSendResult emailSendResult(String name) {
+  switch (name?.toLowerCase() ?? "") {
+    case "cancelled":
+      return EmailSendResult.cancelled;
+    case "sent":
+      return EmailSendResult.sent;
+    case "unknown":
+      return EmailSendResult.unknown;
+    case "failed":
+      return EmailSendResult.failed;
+    default:
+      return EmailSendResult.unknown;
+  }
+}
 
 enum EmailSendResult { cancelled, sent, unknown, failed }
 
